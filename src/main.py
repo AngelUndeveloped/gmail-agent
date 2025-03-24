@@ -8,9 +8,18 @@ import os
 
 from .gmail_agent import GmailAgent
 from .auth import get_auth_url, handle_callback
+from .utils.secrets import secrets
 
 # Load environment variables
 load_dotenv()
+
+# Validate secrets on startup
+try:
+    secrets.validate_secrets()
+except ValueError as e:
+    print(f"Error: {e}")
+    print("Please ensure all required secrets are set in your .env file")
+    exit(1)
 
 app = FastAPI(title="Gmail Agent API")
 

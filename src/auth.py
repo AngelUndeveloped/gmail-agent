@@ -3,25 +3,23 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 import os
 from dotenv import load_dotenv
+from .utils.secrets import secrets
 
 load_dotenv()
 
 # OAuth 2.0 configuration
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
-CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
-CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
-REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI')
 
 def get_auth_url() -> str:
     """Generate the Google OAuth URL"""
     flow = Flow.from_client_config(
         {
             "web": {
-                "client_id": CLIENT_ID,
-                "client_secret": CLIENT_SECRET,
+                "client_id": secrets.get_secret('GOOGLE_CLIENT_ID'),
+                "client_secret": secrets.get_secret('GOOGLE_CLIENT_SECRET'),
                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                 "token_uri": "https://oauth2.googleapis.com/token",
-                "redirect_uris": [REDIRECT_URI],
+                "redirect_uris": [secrets.get_secret('GOOGLE_REDIRECT_URI')],
                 "scopes": SCOPES,
             }
         }
@@ -39,11 +37,11 @@ async def handle_callback(code: str) -> dict:
     flow = Flow.from_client_config(
         {
             "web": {
-                "client_id": CLIENT_ID,
-                "client_secret": CLIENT_SECRET,
+                "client_id": secrets.get_secret('GOOGLE_CLIENT_ID'),
+                "client_secret": secrets.get_secret('GOOGLE_CLIENT_SECRET'),
                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                 "token_uri": "https://oauth2.googleapis.com/token",
-                "redirect_uris": [REDIRECT_URI],
+                "redirect_uris": [secrets.get_secret('GOOGLE_REDIRECT_URI')],
                 "scopes": SCOPES,
             }
         }
