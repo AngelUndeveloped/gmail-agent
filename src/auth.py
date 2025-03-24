@@ -12,18 +12,21 @@ SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 
 def get_auth_url() -> str:
     """Generate the Google OAuth URL"""
-    flow = Flow.from_client_config(
-        {
-            "web": {
-                "client_id": secrets.get_secret('GOOGLE_CLIENT_ID'),
-                "client_secret": secrets.get_secret('GOOGLE_CLIENT_SECRET'),
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
-                "redirect_uris": [secrets.get_secret('GOOGLE_REDIRECT_URI')],
-                "scopes": SCOPES,
-            }
+    client_config = {
+        "web": {
+            "client_id": secrets.get_secret('GOOGLE_CLIENT_ID'),
+            "client_secret": secrets.get_secret('GOOGLE_CLIENT_SECRET'),
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "redirect_uris": [secrets.get_secret('GOOGLE_REDIRECT_URI')],
         }
+    }
+    
+    flow = Flow.from_client_config(
+        client_config=client_config,
+        scopes=SCOPES
     )
+    flow.redirect_uri = secrets.get_secret('GOOGLE_REDIRECT_URI')
     
     auth_url, _ = flow.authorization_url(
         access_type='offline',
@@ -34,18 +37,21 @@ def get_auth_url() -> str:
 
 async def handle_callback(code: str) -> dict:
     """Handle the OAuth callback and return credentials"""
-    flow = Flow.from_client_config(
-        {
-            "web": {
-                "client_id": secrets.get_secret('GOOGLE_CLIENT_ID'),
-                "client_secret": secrets.get_secret('GOOGLE_CLIENT_SECRET'),
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
-                "redirect_uris": [secrets.get_secret('GOOGLE_REDIRECT_URI')],
-                "scopes": SCOPES,
-            }
+    client_config = {
+        "web": {
+            "client_id": secrets.get_secret('GOOGLE_CLIENT_ID'),
+            "client_secret": secrets.get_secret('GOOGLE_CLIENT_SECRET'),
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "redirect_uris": [secrets.get_secret('GOOGLE_REDIRECT_URI')],
         }
+    }
+    
+    flow = Flow.from_client_config(
+        client_config=client_config,
+        scopes=SCOPES
     )
+    flow.redirect_uri = secrets.get_secret('GOOGLE_REDIRECT_URI')
     
     flow.fetch_token(code=code)
     credentials = flow.credentials
