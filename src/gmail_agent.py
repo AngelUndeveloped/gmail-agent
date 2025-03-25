@@ -2,7 +2,6 @@ from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.tools import Tool
 from langchain_core.memory import BaseMemory
 from langchain_core.chat_history import BaseChatMessageHistory
-from langchain_google_genai import ChatGoogleGenerativeAI
 from typing import List, Dict, Any, Optional
 import os
 from google.oauth2.credentials import Credentials
@@ -10,6 +9,10 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from .utils.secrets import secrets
 from pydantic import Field
+import google.generativeai as genai
+
+# Configure the Gemini API
+genai.configure(api_key=secrets.get_secret('GEMINI_API_KEY'))
 
 class SimpleMemory(BaseMemory):
     chat_history: List[Dict[str, str]] = Field(default_factory=list)
@@ -34,10 +37,14 @@ class SimpleMemory(BaseMemory):
 
 class GmailAgent:
     def __init__(self):
-        self.llm = ChatGoogleGenerativeAI(
-            model="gemini-pro",
-            temperature=0,
-            google_api_key=secrets.get_secret('GEMINI_API_KEY')
+        self.client = genai.GenerativeModel(
+            model_name="gemini-2.0-flash-thinking-exp-01-21",
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.7,
+                top_p=0.95,
+                top_k=64,
+                max_output_tokens=65536,
+            )
         )
         self.memory = SimpleMemory()
         self.credentials = None
@@ -147,9 +154,8 @@ class GmailAgent:
         if not self.service:
             raise Exception("Gmail service not initialized. Please authenticate first.")
 
-        # Construct prompt for Gemini
         prompt = f"""
-        Analyze this email and provide:
+        Please analyze this email and provide:
         1. A brief summary
         2. Key action items (if any)
         3. Priority level (High/Medium/Low)
@@ -162,18 +168,18 @@ class GmailAgent:
         """
 
         # Get analysis from Gemini
-        response = await self.llm.agenerate([prompt])
-        analysis = response.generations[0][0].text
+        response = self.client.generate_content(prompt)
+        response_text = response.text
 
         # Store in memory for context
         self.memory.save_context(
             {"input": f"Analyzed email: {email_data['subject']}"},
-            {"output": analysis}
+            {"output": response_text}
         )
 
         return {
             'email_id': email_data['id'],
-            'analysis': analysis
+            'analysis': response_text
         }
 
     async def get_email(self, email_id: str) -> Dict[str, Any]:
