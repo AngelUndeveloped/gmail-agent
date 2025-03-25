@@ -140,4 +140,64 @@ class GmailAgent:
             }
 
         except HttpError as error:
+            raise Exception(f'An error occurred: {error}')
+
+    async def analyze_email(self, email_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze an email using Gemini AI"""
+        if not self.service:
+            raise Exception("Gmail service not initialized. Please authenticate first.")
+
+        # Construct prompt for Gemini
+        prompt = f"""
+        Analyze this email and provide:
+        1. A brief summary
+        2. Key action items (if any)
+        3. Priority level (High/Medium/Low)
+        4. Suggested response points (if a response is needed)
+
+        Email Details:
+        From: {email_data['sender']}
+        Subject: {email_data['subject']}
+        Content: {email_data['snippet']}
+        """
+
+        # Get analysis from Gemini
+        response = await self.llm.agenerate([prompt])
+        analysis = response.generations[0][0].text
+
+        # Store in memory for context
+        self.memory.save_context(
+            {"input": f"Analyzed email: {email_data['subject']}"},
+            {"output": analysis}
+        )
+
+        return {
+            'email_id': email_data['id'],
+            'analysis': analysis
+        }
+
+    async def get_email(self, email_id: str) -> Dict[str, Any]:
+        """Get a specific email by ID"""
+        if not self.service:
+            raise Exception("Gmail service not initialized. Please authenticate first.")
+
+        try:
+            # Get the specific email
+            msg = self.service.users().messages().get(
+                userId='me',
+                id=email_id
+            ).execute()
+            
+            headers = msg['payload']['headers']
+            subject = next((h['value'] for h in headers if h['name'] == 'Subject'), 'No Subject')
+            sender = next((h['value'] for h in headers if h['name'] == 'From'), 'Unknown')
+            
+            return {
+                'id': email_id,
+                'subject': subject,
+                'sender': sender,
+                'snippet': msg['snippet']
+            }
+
+        except HttpError as error:
             raise Exception(f'An error occurred: {error}') 
